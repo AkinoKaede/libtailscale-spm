@@ -7,7 +7,9 @@ let package = Package(
     products: [.library(name: "TailscaleKit", targets: ["TailscaleKit"])],
     targets: [
         .binaryTarget(
-            name: "CTailscale", url: "__BINARY_URL__", checksum: "__BINARY_CHECKSUM__"
+            name: "CTailscale",
+            url: "__BINARY_URL__",
+            checksum: "__BINARY_CHECKSUM__"
         ),
         .target(
             name: "TailscaleKit", dependencies: ["CTailscale"],

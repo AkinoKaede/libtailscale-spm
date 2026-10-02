@@ -11,9 +11,10 @@ if [[ "${1:-}" == --local ]]; then
     done
     cd "$stage"
 fi
-swift test
+# The release asset is public; validation must not prompt for Keychain access.
+swift test --disable-keychain
 for destination in 'generic/platform=iOS' 'generic/platform=iOS Simulator'; do
     xcodebuild -scheme TailscaleKit -destination "$destination" \
         -derivedDataPath "$root/.build/package-xcode" \
-        -onlyUsePackageVersionsFromResolvedFile CODE_SIGNING_ALLOWED=NO build
+        -onlyUsePackageVersionsFromResolvedFile -packageAuthorizationProvider netrc CODE_SIGNING_ALLOWED=NO build
 done
