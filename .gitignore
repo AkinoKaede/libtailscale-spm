@@ -1,0 +1,21 @@
+# Build caches and release assets
+.build/
+build/
+Artifacts/
+*.xcframework/
+*.xcframework.zip
+*.dSYM/
+*.dSYM.zip
+*.xcresult/
+
+# SwiftPM and Xcode user state
+.swiftpm/
+Package.resolved
+xcuserdata/
+*.xcuserstate
+
+# Local editor and macOS files
+.DS_Store
+._*
+__pycache__/
+*.pyc

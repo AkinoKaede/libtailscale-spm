@@ -1,0 +1,75 @@
+name: Build XCFramework
+on:
+  push:
+    tags: ['tailscale.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing native tag (tailscale.VERSION-BUILD)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: native-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate source release
+        run: |
+          [[ "$RELEASE_TAG" =~ ^tailscale\.[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]
+          [[ "$(git rev-parse HEAD)" == "$(git rev-parse "$RELEASE_TAG^{commit}")" ]]
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release already exists; use a new native build number."
+            exit 1
+          fi
+          tailscale_version=$(tr -d '[:space:]' < Tailscale.version)
+          tailscale_version=${tailscale_version#v}
+          [[ "$RELEASE_TAG" == "tailscale.$tailscale_version-"* ]]
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+          cache-dependency-path: Patches/libtailscale/*.patch
+      - name: Test Go bridge and userspace routing
+        run: Scripts/test-go.sh
+      - name: Build Apple XCFramework
+        run: Scripts/build-xcframework.sh
+      - name: Test Swift consumer on macOS and iOS
+        run: Scripts/test-package.sh --local
+      - name: Package binary and provenance
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent Artifacts/CTailscale.xcframework Artifacts/CTailscale.xcframework.zip
+          swift package compute-checksum Artifacts/CTailscale.xcframework.zip > Artifacts/CTailscale.xcframework.sha256
+          {
+            echo "Wrapper: $(git rev-parse HEAD)"
+            echo "libtailscale: $(cat libtailscale.ref)"
+            echo "Tailscale: $(cat Tailscale.version)"
+            go version
+            xcodebuild -version
+          } > Artifacts/build-info.txt
+          {
+            echo "Apple XCFramework built from tag $RELEASE_TAG."
+            echo
+            cat Artifacts/build-info.txt
+            echo
+            echo "SHA-256: $(cat Artifacts/CTailscale.xcframework.sha256)"
+          } > .build/native-release-notes.md
+      - name: Publish binary release
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --latest=false \
+            --title "Tailscale ${RELEASE_TAG#tailscale.} Apple XCFramework" \
+            --notes-file .build/native-release-notes.md \
+            Artifacts/CTailscale.xcframework.zip Artifacts/CTailscale.xcframework.sha256 Artifacts/build-info.txt

@@ -1,0 +1,24 @@
+name: Swift Package
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: swift-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apple:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+          cache-dependency-path: Patches/libtailscale/*.patch
+      - name: Build all Apple slices
+        run: Scripts/build-xcframework.sh
+      - name: Test the native binary and Swift consumer
+        run: Scripts/test-package.sh --local

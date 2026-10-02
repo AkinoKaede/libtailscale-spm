@@ -1,0 +1,18 @@
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+  name: "TailscaleKit",
+  platforms: [.macOS(.v15), .iOS(.v18)],
+  products: [.library(name: "TailscaleKit", targets: ["TailscaleKit"])],
+  targets: [
+    .binaryTarget(name: "CTailscale", path: "Artifacts/CTailscale.xcframework"),
+    .target(
+      name: "TailscaleKit", dependencies: ["CTailscale"],
+      linkerSettings: [
+        .linkedFramework("Security"), .linkedFramework("CoreFoundation"), .linkedLibrary("resolv"),
+      ]
+    ),
+    .testTarget(name: "TailscaleKitTests", dependencies: ["TailscaleKit"]),
+  ]
+)
