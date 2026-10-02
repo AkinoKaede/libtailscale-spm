@@ -39,13 +39,11 @@ Exit Node routing; the Apple bridge and Keychain implementation build only on Ap
 ## Releases
 
 Native binaries and Swift package releases are separate, as in libghostty-spm.
-CI publishes from existing source tags and never creates commits. Maintainer
-commits use PGP signatures. Release workflows validate the checked-out tag,
-the binary checksum, and the consumer build; no signing keys are stored in CI.
+CI publishes from existing source tags and never creates commits. Release
+workflows validate the checked-out tag, the binary checksum, and the consumer build.
 
-1. Update the version pins, dependency patch, bridge, or Apple build inputs. Test and commit with
-   `git -c gpg.format=openpgp commit -S`. Sign a new native tag such as
-   `git -c gpg.format=openpgp tag -s tailscale.1.102.5-1 -m "Tailscale 1.102.5 Apple build 1"`,
+1. Update the version pins, dependency patch, bridge, or Apple build inputs. Test and commit the changes, then create a native tag such as
+   `git tag -a tailscale.1.102.5-1 -m "Tailscale 1.102.5 Apple build 1"`,
    then push the branch and tag. `Build XCFramework` tests all supported targets
    and publishes the XCFramework ZIP, checksum, and toolchain/source metadata.
    Use a new build suffix when rebuilding the same Tailscale version.
@@ -57,7 +55,7 @@ the binary checksum, and the consumer build; no signing keys are stored in CI.
    Scripts/verify-release.sh
    Scripts/test-package.sh
    ```
-3. PGP-sign the manifest commit and a semantic package tag, for example `1.0.0`.
+3. Commit the manifest and create a semantic package tag, for example `1.0.0`.
    Push them. `Release Swift Package` downloads and
    checks the native asset, tests the published consumer, and publishes the package release.
 
@@ -84,4 +82,5 @@ belong in [tailscale/tailscale](https://github.com/tailscale/tailscale/issues).
 
 ## License
 
-BSD 3-Clause; see [LICENSE](LICENSE).
+BSD 3-Clause for this wrapper; see [LICENSE](LICENSE). The downloaded upstream
+libtailscale retains its original copyright and license; see [NOTICE](NOTICE).

@@ -1,6 +1,9 @@
+The upstream libtailscale library is downloaded during the build and retains
+its original license and copyright notice:
+
 BSD 3-Clause License
 
-Copyright (c) 2026 Kaede Akino
+Copyright (c) 2023 Tailscale & AUTHORS.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
