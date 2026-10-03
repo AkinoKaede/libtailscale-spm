@@ -65,6 +65,14 @@ public actor Node {
   /// Erases only this profile's device-local state after its transport is closed.
   public func eraseState() throws {
     guard closed else { throw NodeError(message: "Close the node before erasing its state") }
+    try Self.eraseState(directory: directory, stateNamespace: stateNamespace)
+  }
+
+  /// Erases an inactive profile without constructing or starting a node.
+  /// The caller must first close every node using this namespace and directory.
+  /// Keep a durable cleanup reference until this operation succeeds; retries are safe.
+  public nonisolated static func eraseState(directory: URL, stateNamespace: String) throws {
+    guard !stateNamespace.isEmpty else { throw NodeError(message: "A state namespace is required") }
     let result = stateNamespace.withCString { lt_store_delete_scope($0) }
     guard result == 0 else { throw NodeError(message: "Unable to erase node state") }
     if FileManager.default.fileExists(atPath: directory.path) {

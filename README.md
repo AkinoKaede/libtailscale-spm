@@ -20,6 +20,11 @@ Tailscale version through `Node.version`. The caller owns returned socket descri
 Node state is stored in device-local Keychain items, scoped by the caller-supplied
 namespace. The host app handles login UI, SSH policy, peer metadata, and application storage.
 
+After closing every node for a profile, call
+`Node.eraseState(directory:stateNamespace:)` to remove its local credentials and
+state directory without starting a node. Keep a durable reference for retry until
+cleanup succeeds. This API does not require network access or revoke other profiles.
+
 ## Development
 
 Use Xcode with macOS and iOS SDKs, and the Go version in `.go-version`.
