@@ -17,8 +17,12 @@ official Tailscale release and Go toolchain; there is no Tailscale fork or syste
 Add the `TailscaleKit` product to your target. `Node` owns a userspace Tailscale node,
 provides cancellable TCP dialing and LocalAPI requests, and exposes the linked
 Tailscale version through `Node.version`. The caller owns returned socket descriptors.
-Node state is stored in device-local Keychain items, scoped by the caller-supplied
-namespace. The host app handles login UI, SSH policy, peer metadata, and application storage.
+Node state is stored in the Data Protection Keychain on both macOS and iOS,
+scoped by the caller-supplied namespace. Items are device-local and never synchronize
+through iCloud Keychain. The host must be signed with the appropriate application
+identifier and Keychain access-group entitlements; there is no fallback to the
+legacy macOS Keychain. The host app handles login UI, SSH policy, peer metadata,
+and application storage.
 
 After closing every node for a profile, call
 `Node.eraseState(directory:stateNamespace:)` to remove its local credentials and
@@ -40,6 +44,11 @@ and simulator destinations. `Package.local.swift` points at the ignored `Artifac
 directory; the validation script stages it under `.build/` without changing the
 release manifest. Linux CI checks the upstream C bindings and real userspace
 Exit Node routing; the Apple bridge and Keychain implementation build only on Apple platforms.
+
+The Keychain integration test requires an entitled, signed test host. Set
+`TAILSCALE_KEYCHAIN_TESTS=1` in that host's test environment to run it; plain
+`swift test` skips this test because its runner has no Keychain entitlements.
+Consumers should also test profile cleanup from their signed app test targets.
 
 ## Releases
 

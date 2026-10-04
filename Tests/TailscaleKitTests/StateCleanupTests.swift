@@ -4,7 +4,9 @@ import Security
 import TailscaleKit
 import Testing
 
-@Test func inactiveProfileCleanupIsScopedAndIdempotent() throws {
+// Data Protection Keychain requires a signed test host with Keychain entitlements.
+@Test(.enabled(if: ProcessInfo.processInfo.environment["TAILSCALE_KEYCHAIN_TESTS"] == "1"))
+func inactiveProfileCleanupIsScopedAndIdempotent() throws {
   let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   let first = root.appendingPathComponent("first")
   let second = root.appendingPathComponent("second")

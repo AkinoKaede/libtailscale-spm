@@ -1,7 +1,6 @@
 #include "spm_bridge.h"
 #include <Security/Security.h>
 #include <CoreFoundation/CoreFoundation.h>
-#include <TargetConditionals.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,6 +12,7 @@ static CFMutableDictionaryRef query(const char *scope, const char *key) {
     CFDictionarySetValue(q, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(q, kSecAttrService, service);
     CFDictionarySetValue(q, kSecAttrAccount, account);
+    CFDictionarySetValue(q, kSecUseDataProtectionKeychain, kCFBooleanTrue);
     CFDictionarySetValue(q, kSecAttrSynchronizable, kCFBooleanFalse);
     CFRelease(service);
     CFRelease(account);
@@ -59,10 +59,6 @@ int lt_store_write(const char *scope, const char *key, const void *data, int len
 int lt_store_delete_scope(const char *scope) {
     CFMutableDictionaryRef q = query(scope, "");
     CFDictionaryRemoveValue(q, kSecAttrAccount);
-#if TARGET_OS_OSX
-    // The macOS file-based keychain otherwise deletes only the first match.
-    CFDictionarySetValue(q, kSecMatchLimit, kSecMatchLimitAll);
-#endif
     OSStatus status = SecItemDelete(q);
     CFRelease(q);
     return status == errSecItemNotFound ? 0 : (int)status;
