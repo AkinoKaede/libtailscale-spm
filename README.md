@@ -53,8 +53,50 @@ Consumers should also test profile cleanup from their signed app test targets.
 ## Releases
 
 Native binaries and Swift package releases are separate, as in libghostty-spm.
-CI publishes from existing source tags and never creates commits. Release
+The native and package workflows publish from existing source tags. Release
 workflows validate the checked-out tag, the binary checksum, and the consumer build.
+
+### Automatic upstream tracking
+
+`Weekly Upstream` runs every Monday at 02:00 UTC (10:00 China time), or through
+manual dispatch. It tracks both the default-branch HEAD of `tailscale/libtailscale`
+and the latest official stable release of `tailscale/tailscale`, including new
+stable minor releases. Drafts, prereleases, odd-minor development versions, and
+Tailscale downgrades are rejected. Unchanged pins skip builds and releases.
+
+The workflow regenerates the Go dependency patch, rebases compatibility patches,
+and raises `.go-version` if the new module requires a newer toolchain. It tests the
+Go bridge, commits a candidate, allocates an unused `tailscale.VERSION-BUILD` tag,
+and dispatches Go tests on Linux/macOS, followed by the existing native workflow
+to build and test all Apple slices.
+It then generates and tests the manifest against the published archive, allocates
+the next package patch version, and dispatches the package release workflow.
+Only after all workflows succeed does it advance `main`, guarded by a lease so
+concurrent maintainer changes cannot be overwritten.
+
+This uses the repository's `GITHUB_TOKEN` with Contents and Actions write access;
+no personal access token is needed. Tag pushes made with that token do not trigger
+push workflows, so both release workflows are dispatched explicitly on their
+immutable tags. The scheduled workflow must be present on the default branch.
+Repository rules protecting `main` or tags must permit the workflow's writes.
+
+Failures leave `main` unchanged. A native asset or package already published before
+a later failure remains immutable; a retry starts from current `main` and allocates
+fresh tags. Inspect failed workflow logs and fix incompatible bridge APIs or source
+patches before retrying. Automatic tracking does not update consumers' package pins.
+
+To prepare an update locally without committing or publishing:
+
+```sh
+python3 Scripts/upstream.py
+python3 Scripts/test-upstream.py
+Scripts/test-go.sh
+```
+
+`--libtailscale-ref SHA` and `--tailscale-version vX.Y.Z` select explicit pins;
+`--refresh` regenerates patches even when the selected pins are unchanged.
+
+### Manual releases
 
 1. Update the version pins, dependency patch, bridge, or Apple build inputs. Test and commit the changes, then create a native tag such as
    `git tag -a tailscale.1.102.5-1 -m "Tailscale 1.102.5 Apple build 1"`,

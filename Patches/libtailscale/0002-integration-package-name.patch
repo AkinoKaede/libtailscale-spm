@@ -1,0 +1,26 @@
+diff --git a/tsnetctest/tsnetctest.go b/tsnetctest/tsnetctest.go
+index a2d17df..1addff7 100644
+--- a/tsnetctest/tsnetctest.go
++++ b/tsnetctest/tsnetctest.go
+@@ -147,7 +147,7 @@ import (
+ 	"time"
+ 
+ 	"tailscale.com/net/netns"
+-	"tailscale.com/tstest/integration"
++	integration "tailscale.com/tstest/integration"
+ 	"tailscale.com/tstest/integration/testcontrol"
+ 	"tailscale.com/types/logger"
+ )
+diff --git a/tstestcontrol/tstestcontrol.go b/tstestcontrol/tstestcontrol.go
+index e27f3fc..cb94817 100644
+--- a/tstestcontrol/tstestcontrol.go
++++ b/tstestcontrol/tstestcontrol.go
+@@ -25,7 +25,7 @@ import (
+ 	"tailscale.com/net/netaddr"
+ 	"tailscale.com/net/netns"
+ 	"tailscale.com/net/stun"
+-	"tailscale.com/tstest/integration"
++	integration "tailscale.com/tstest/integration"
+ 	"tailscale.com/tstest/integration/testcontrol"
+ 	"tailscale.com/types/logger"
+ 

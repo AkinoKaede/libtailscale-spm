@@ -1,0 +1,55 @@
+name: Weekly Upstream
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: upstream-release
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.repository == 'AkinoKaede/libtailscale-spm'
+    runs-on: macos-26
+    timeout-minutes: 240
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+          cache-dependency-path: Patches/libtailscale/*.patch
+      - name: Test upstream automation
+        run: python3 Scripts/test-upstream.py
+      - name: Prepare upstream pins and patches
+        id: upstream
+        run: |
+          echo "PREVIOUS_MAIN=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          python3 Scripts/upstream.py
+      - name: Test Go bridge with updated pins
+        if: steps.upstream.outputs.changed == 'true'
+        run: Scripts/test-go.sh
+      - name: Commit candidate
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add libtailscale.ref Tailscale.version .go-version Patches/libtailscale
+          git commit -m 'build: track latest libtailscale and stable Tailscale'
+      - name: Build, release, and promote verified candidate
+        if: steps.upstream.outputs.changed == 'true'
+        run: python3 Scripts/release-upstream.py
+      - name: Report failure
+        if: failure()
+        run: |
+          echo 'Upstream sync stopped without promoting main. Inspect patch, test, or release failures. Published assets and tags are immutable; retrying allocates fresh versions.' >> "$GITHUB_STEP_SUMMARY"
