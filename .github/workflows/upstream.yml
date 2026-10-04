@@ -38,7 +38,8 @@ jobs:
           python3 Scripts/upstream.py
       - name: Test Go bridge with updated pins
         if: steps.upstream.outputs.changed == 'true'
-        run: Scripts/test-go.sh
+        # setup-go sets GOTOOLCHAIN=local before the updater may raise .go-version.
+        run: GOTOOLCHAIN="go$(tr -d '[:space:]' < .go-version)" Scripts/test-go.sh
       - name: Commit candidate
         if: steps.upstream.outputs.changed == 'true'
         run: |
