@@ -65,10 +65,12 @@ stable minor releases. Drafts, prereleases, odd-minor development versions, and
 Tailscale downgrades are rejected. Unchanged pins skip builds and releases.
 
 The workflow regenerates the Go dependency patch, rebases compatibility patches,
-and raises `.go-version` if the new module requires a newer toolchain. It tests the
-Go bridge, commits a candidate, allocates an unused `tailscale.VERSION-BUILD` tag,
-and dispatches Go tests on Linux/macOS, followed by the existing native workflow
-to build and test all Apple slices.
+and raises `.go-version` if the new module requires a newer toolchain. If upstream
+already provides the validated dependencies, the obsolete dependency patch is
+removed instead of writing an empty patch. Absorbed compatibility patches still
+require manual review. It tests the Go bridge, commits a candidate, allocates an
+unused `tailscale.VERSION-BUILD` tag, and dispatches Go tests on Linux/macOS,
+followed by the existing native workflow to build and test all Apple slices.
 It then generates and tests the manifest against the published archive, allocates
 the next package patch version, and dispatches the package release workflow.
 Only after all workflows succeed does it advance `main`, guarded by a lease so
@@ -128,9 +130,10 @@ Swift-only updates may reuse a compatible native binary.
 - `.github/workflows/`: Go/Swift checks, native binary publication, and Swift package releases.
 
 `Scripts/prepare-source.sh` creates a disposable checkout under `.build/libtailscale`,
-applies each patch strictly, and overlays the bridge. It fails if the dependency
-patch disagrees with `Tailscale.version`. To update upstream, change `libtailscale.ref`
-and rebase the patches; do not copy upstream files into this repository.
+applies each remaining patch strictly, and overlays the bridge. It fails if the
+prepared Go module disagrees with `Tailscale.version`. To update upstream, change
+`libtailscale.ref` and rebase the patches; do not copy upstream files into this
+repository.
 
 Report this package’s issues
 [here](https://github.com/AkinoKaede/libtailscale-spm/issues); upstream Tailscale issues

@@ -118,12 +118,15 @@ def prepare(root, revision, tailscale, refresh=False, upstream_url=LIBTAILSCALE_
             raise ValueError("Resolved Tailscale module does not match the official release")
         toolchain = go_version((source / "go.mod").read_text(), required)
         dependency = run("git", "diff", "--binary", "--full-index", "--", "go.mod", "go.sum", cwd=source)
-        if not dependency:
-            raise ValueError("Empty dependency patch: upstream dependency layout needs review")
 
     for patch, contents in rebased.items():
         patch.write_text(contents)
-    (patches / DEPENDENCY_PATCH).write_text(dependency + "\n")
+    dependency_patch = patches / DEPENDENCY_PATCH
+    if dependency:
+        dependency_patch.write_text(dependency + "\n")
+    else:
+        # Upstream already has the validated dependencies; no patch is needed.
+        dependency_patch.unlink(missing_ok=True)
     (root / "libtailscale.ref").write_text(revision + "\n")
     (root / "Tailscale.version").write_text(tailscale + "\n")
     (root / ".go-version").write_text(toolchain + "\n")

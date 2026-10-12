@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -99,11 +100,28 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue((source / "bridge.go").exists())
         self.assertEqual(kwargs["env"]["GOTOOLCHAIN"], "go1.27.1+auto")
         if args[1:3] == ("get", "tailscale.com@v1.104.0"):
-            (source / "go.mod").write_text("module example.org/test\n\ngo 1.28.1\n\nrequire tailscale.com v1.104.0\n")
+            (source / "go.mod").write_text(
+                "module example.org/test\n\ngo 1.28.1\n\nrequire (\n\ttailscale.com v1.104.0\n)\n")
             (source / "go.sum").write_text("new dependency\n")
         if args[1:3] == ("list", "-m"):
             return json.dumps({"Version": "v1.104.0"})
         return ""
+
+    def commit_upstream_dependencies(self):
+        (self.source / "go.mod").write_text(
+            "module example.org/test\n\ngo 1.28.1\n\nrequire (\n\ttailscale.com v1.104.0\n)\n")
+        (self.source / "go.sum").write_text("new dependency\n")
+        return self.commit()
+
+    def prepare_source(self):
+        scripts = self.root / "Scripts"
+        scripts.mkdir()
+        shutil.copy2(Path(__file__).with_name("prepare-source.sh"), scripts)
+        source = self.root / ".build/libtailscale"
+        source.parent.mkdir()
+        upstream.run("git", "clone", "--quiet", str(self.source), str(source))
+        upstream.run("bash", str(scripts / "prepare-source.sh"))
+        return source
 
     def test_no_change_does_not_run_git_or_go(self):
         before = self.snapshot()
@@ -136,6 +154,59 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual((self.source / "compat.go").read_text(), "after\n\n")
         self.assertEqual((self.source / "new-upstream-file").read_text(), "keep this\n")
         self.assertNotIn("bridge.go", self.dependency.read_text())
+
+    def test_empty_dependency_diff_removes_old_patch_and_prepares_source(self):
+        revision = self.commit_upstream_dependencies()
+        self.real_run = upstream.run
+        with patch.object(upstream, "run", side_effect=self.fake_go):
+            self.assertTrue(self.prepare(revision))
+        self.assertFalse(self.dependency.exists())
+        self.assertEqual((self.root / "libtailscale.ref").read_text().strip(), revision)
+        self.assertEqual((self.root / "Tailscale.version").read_text().strip(), "v1.104.0")
+        self.assertEqual((self.root / ".go-version").read_text().strip(), "1.28.1")
+        source = self.prepare_source()
+        self.assertEqual((source / "compat.go").read_text(), "after\n\n")
+        self.assertTrue((source / "bridge.go").exists())
+        self.assertEqual((source / "go.mod").read_bytes(), (self.source / "go.mod").read_bytes())
+        self.assertEqual((source / "go.sum").read_bytes(), (self.source / "go.sum").read_bytes())
+
+    def test_empty_dependency_diff_without_existing_patches_prepares_source(self):
+        self.dependency.unlink()
+        self.compat.unlink()
+        (self.source / "compat.go").write_text("after\n\n")
+        revision = self.commit_upstream_dependencies()
+        self.real_run = upstream.run
+        with patch.object(upstream, "run", side_effect=self.fake_go):
+            self.assertTrue(self.prepare(revision))
+        self.assertFalse(self.dependency.exists())
+        source = self.prepare_source()
+        self.assertTrue((source / "bridge.go").exists())
+        self.assertEqual((source / "go.mod").read_bytes(), (self.source / "go.mod").read_bytes())
+
+    def test_missing_dependency_patch_is_created_when_needed(self):
+        self.dependency.unlink()
+        self.real_run = upstream.run
+        with patch.object(upstream, "run", side_effect=self.fake_go):
+            self.assertTrue(self.prepare())
+        source = self.prepare_source()
+        self.assertIn("tailscale.com v1.104.0", (source / "go.mod").read_text())
+        self.assertEqual((source / "go.sum").read_text(), "new dependency\n")
+        self.assertIn("diff --git a/go.mod b/go.mod", self.dependency.read_text())
+
+    def test_empty_diff_with_invalid_module_does_not_change_pins_or_patches(self):
+        revision = self.commit_upstream_dependencies()
+        self.real_run = upstream.run
+        before = self.snapshot()
+        for module in [{"Version": "v1.102.5"},
+                       {"Version": "v1.104.0", "Replace": {"Path": "../fork"}}]:
+            def invalid_module(*args, **kwargs):
+                result = self.fake_go(*args, **kwargs)
+                return json.dumps(module) if args[:3] == ("go", "list", "-m") else result
+
+            with self.subTest(module=module), patch.object(upstream, "run", side_effect=invalid_module):
+                with self.assertRaisesRegex(ValueError, "does not match the official release"):
+                    self.prepare(revision)
+            self.assertEqual(self.snapshot(), before)
 
     def test_patch_conflict_does_not_change_pins_or_patches(self):
         (self.source / "compat.go").write_text("conflicting upstream change\n")

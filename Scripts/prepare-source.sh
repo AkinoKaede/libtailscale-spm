@@ -16,6 +16,7 @@ fi
 # This checkout is disposable build output, never the maintainer's source tree.
 git -C "$source_dir" checkout --quiet --detach --force "$revision"
 git -C "$source_dir" clean -fdq
+shopt -s nullglob
 for patch in "$root"/Patches/libtailscale/*.patch; do
     git -C "$source_dir" apply --check "$patch"
     git -C "$source_dir" apply "$patch"
@@ -23,4 +24,4 @@ done
 cp "$root"/Bridge/* "$source_dir/"
 expected=$(tr -d '[:space:]' < Tailscale.version)
 actual=$(awk '$1 == "tailscale.com" {print $2}' "$source_dir/go.mod")
-[[ "$actual" == "$expected" ]] || { echo "Tailscale.version does not match the dependency patch" >&2; exit 1; }
+[[ "$actual" == "$expected" ]] || { echo "Tailscale.version does not match the prepared Go module" >&2; exit 1; }
