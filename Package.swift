@@ -8,8 +8,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "CTailscale",
-            url: "https://github.com/AkinoKaede/libtailscale-spm/releases/download/tailscale.1.104.1-1/CTailscale.xcframework.zip",
-            checksum: "3d1e3c4abc4027d64a3c9604c10bad5a2bb6fabcaf26f1e55e136871dd1c0e1d"
+            url: "https://github.com/AkinoKaede/libtailscale-spm/releases/download/tailscale.1.104.1-2/CTailscale.xcframework.zip",
+            checksum: "bc87a07142422edc90a0f9e0cc4a870ef295ac6329bd04f1a5e5b8118b331010"
         ),
         .target(
             name: "TailscaleKit", dependencies: ["CTailscale"],
