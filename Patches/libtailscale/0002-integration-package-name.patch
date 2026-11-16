@@ -1,8 +1,8 @@
 diff --git a/tsnetctest/tsnetctest.go b/tsnetctest/tsnetctest.go
-index ed4e5ccf88d875a9f3601a15a00840735b8c7536..b663a7876205aa6fa56a6a0224e0e3f98fe4a237 100644
+index 1d43529475ff03cf92f8e0ba4d246b17d892f17e..60aab2fa7e1d0841e4095698f8a4ffc61eca0d41 100644
 --- a/tsnetctest/tsnetctest.go
 +++ b/tsnetctest/tsnetctest.go
-@@ -298,7 +298,7 @@ import (
+@@ -323,7 +323,7 @@ import (
  	"time"
  
  	"tailscale.com/net/netns"
